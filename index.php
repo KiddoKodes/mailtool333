@@ -1,28 +1,64 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require $_SERVER['DOCUMENT_ROOT'] . '/mail/Exception.php'; //these paths are because of hosting provider
+require $_SERVER['DOCUMENT_ROOT'] . '/mail/PHPMailer.php';
+
+error_reporting(0);
 $posted=false;
-if($_POST){
+if(isset($_POST['submit'])){
     $posted=true;
     $sender=$_POST['name'];
     $to=$_POST['to'];
     $from=$_POST['from'];
+    $fileTobeAttached=$_FILES['getAttachment']['tmp_name'];
+    $filename=$_FILES['getAttachment']['name'];
     $subject=$_POST['subject'];
     $message=$_POST['message'];
-    
-    $headers=array();
-    $headers[]="MIME-VERSION: 1.0";
-    $headers[]="Content-type: text/plain; charset=iso-8859-1";
-    $headers[]="From: {$sender} <".$from.">";
-    $headers[] = "Subject: {$subject}";
-    $headers[] = "X-Mailer: PHP/".phpversion();
-    if(mail($to, $subject, $message, implode("\r\n", $headers))){
-		$result="Email sent successfully";
-	}
-	else{
-		$result="Failure sending email";
-	}
+    $email = new PHPMailer();
+ 
+    if(!empty($sender)){
+        $email->SetFrom($from, $sender); 
+    }
+    else{
+        $email->SetFrom($from, ''); 
+    }
+    $email->Subject   = $subject;
+    $email->Body      = $message;
+    $email->AddAddress( $to);
 
-
+    if (isset($filename)){
+          
+        try{
+            $email->addAttachment($fileTobeAttached,$filename);
+        }
+        catch(Exception $e){
+            $war = 'File not supported';
+        }
+        try{        
+            $email->Send();         
+            $result='Email sent succesfully';
+                
+        }
+        catch(Exception $e){
+            $result='Email not sent. Please Try Again.';
+        };
+    }
+    else{
+         try{        
+            $email->Send();         
+            $result='Email sent succesfully';
+                
+        }
+        catch(Exception $e){
+            $result='Email not sent. Please Try Again.';
+        };
+    }
+        
+     
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -49,6 +85,7 @@ if($_POST){
         width: 10px;
     }
     body{
+        color:#fff;
         min-height: 100vh;
         width: 100%;
         display: flex;
@@ -57,6 +94,9 @@ if($_POST){
         justify-content: center;
         background: #000;
         padding: 1rem 3rem;
+    }
+    #logo{
+        max-width:100vw;
     }
     .warning{
         display: flex;
@@ -112,7 +152,7 @@ if($_POST){
         
     }
     .status span{
-        border: 2px solid #000;
+        border-left: 2px solid #000;
         border-radius: 10px ;
         padding: .45rem;
         margin-left: auto;
@@ -141,6 +181,11 @@ if($_POST){
         font-size: 1.5rem;
         transition: 0.5s;
     }
+    footer{
+        color:#fff;
+        display:block;
+        margin auto
+    }
     @media only screen and (max-width:768px){
         html{
             font-size: .8rem;
@@ -158,6 +203,8 @@ if($_POST){
     }
 </style>
 <body>
+    <img src='logo.png' id='logo'>
+    <hr>
     <div class="warning">
         <img src="bg1.png">
         <span> WARNING! USE IT IN YOUR OWN RISK</span>
@@ -166,23 +213,25 @@ if($_POST){
     <div class="container">
         <?php
             if($posted){
-                if($result)
+                if(!empty($result)){
                     echo "<div class='status' id='status' style='display:flex'>";
                     echo "<div>$result</div>";
                     echo "<span id='close'>x</span>";
                     echo "</div>";
+                }
             }
         ?>
         <h1>SEND EMAIL</h1>
-        <form method="post" id="mailerDevil">
-            <input type="email" name="to" placeholder="RECIEVER EMAIL">
-            <input type="email" name="from" placeholder="SENDER EMAIL">
+       <form method="post" id="mailerDevil" enctype="multipart/form-data">
+            <input type="email" name="to" placeholder="RECIEVER EMAIL *" required>
+            <input type="email" name="from" placeholder="SENDER EMAIL *" required>
             <input type="text" name="name" placeholder="SENDER NAME">
-            <input type="text" name="subject" placeholder="SUBJECT">
-            <textarea type="text" name="message" placeholder="MESSAGE"></textarea>
+            <input type="file" name="getAttachment">
+            <input type="text" name="subject" placeholder="SUBJECT *" required>
+            <textarea type="text" name="message" placeholder="MESSAGE *" required></textarea>
             
         </form>
-        <button type="submit" form="mailerDevil" value="Submit">Send</button>
+        <button type="submit" form="mailerDevil" value="Submit" name="submit">Send</button>
     </div>
     <hr>
     <footer>
